@@ -275,6 +275,34 @@ with subtest("live network permission denial has a passing application control")
         )
         ready(client, ips["basic"])
         client.fail(curl(ips["basic"], path="/metrics", port=9099, extra="-f"))
+    with subtest("control and DERP outage preserves direct traffic and cached policy"):
+        for name in ("basic", "tailnet", "tailnet-relay"):
+            peer.wait_until_succeeds(
+                f"tailscale ping --timeout=3s -c 1 {name} | grep -E 'via (\\[)?[0-9a-f]+[.:]'",
+                timeout=T,
+            )
+        headscale.systemctl("stop headscale")
+        headscale.fail("systemctl is-active --quiet headscale")
+        headscale.wait_for_closed_port(80)
+        headscale.wait_for_closed_port(443)
+        offline_headers = response(peer, ips["basic"])["headers"]
+        assert offline_headers["X-Tailscale-User"] == f"userid:{user_id}", (
+            offline_headers
+        )
+        assert APP in offline_headers["X-Tailscale-Caps"], offline_headers
+        assert response(peer, ips["tailnet"], path="/upstream")["path"] == "/upstream"
+        peer.fail(curl(ips["basic"], path="/metrics", port=9099, extra="-f"))
+        relay.fail(curl(ips["basic"], extra="-f"))
+        peer.fail(curl(ips["tailnet-relay"], path="/upstream", extra="-f"))
+        ready(peer, ips["basic"])
+        headscale.systemctl("start headscale")
+        headscale.succeed("headscale health")
+        relay.wait_until_succeeds(
+            "tailscale ping --timeout=3s --until-direct=false -c 1 basic | grep 'via DERP(headscale)'",
+            timeout=T,
+        )
+        ready(relay, ips["basic"])
+        ready(peer, ips["tailnet-relay"], path="/upstream")
     set_policy()
     for client in (peer, relay):
         ready(client, ips["basic"], path="/metrics", port=9099)
@@ -305,6 +333,7 @@ with subtest(
         timeout=T,
     )
     ready(peer, ips["suppressed"])
+    peer.fail(curl(ips["basic"], extra="-f"))
     machine.systemctl(f"stop {unit_prefix}basic")
     write_file(machine, "/run/ts-authkey", "")
     machine.systemctl(f"reset-failed {unit_prefix}basic")
@@ -320,8 +349,8 @@ with subtest(
     write_file(machine, "/run/ts-authkey", server_key)
     if not container:
         machine.succeed(
-            "test $(systemctl show tsnsrv-basic -p DynamicUser --value) = yes; "
-            'test -z "$(systemctl show tsnsrv-basic -p CapabilityBoundingSet --value)"; '
+            "test $(systemctl show tsnsrv-basic -p DynamicUser --value) = yes && "
+            'test -z "$(systemctl show tsnsrv-basic -p CapabilityBoundingSet --value)" && '
             "test $(stat -c %a /var/lib/private/tsnsrv-basic) = 700"
         )
 

@@ -5,8 +5,8 @@ import json
 import os
 import socketserver
 import ssl
-import threading
 import sys
+import threading
 
 
 class Echo(http.server.BaseHTTPRequestHandler):

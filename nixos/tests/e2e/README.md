@@ -29,6 +29,11 @@ The shared script checks:
   them. Live capability revocation leaves network access working.
 - Live network grants allow HTTP while denying metrics. Each denial has an
   allowed HTTP control, and restoring policy restores metrics access.
+- During a control-server and embedded-DERP outage, established direct paths
+  still carry HTTP, WhoIs identity and application capabilities remain available,
+  and the cached metrics denial remains enforced. Relay-only ingress and upstream
+  requests fail while direct requests succeed, then recover after Headscale
+  restarts.
 - Tailnet-only and Funnel-only prefix provenance on the tailnet listener,
   prefix stripping/preservation, encoded paths and rejected paths.
 - Custom application HTTPS certificates, both accepted with explicit trust and
@@ -49,6 +54,9 @@ otherwise binds sockets to the VM's default user-network interface, bypassing
 the route to the test VLAN. Production defaults and service sandboxing remain
 unchanged. On a production host, use this option only when ordinary routing is
 appropriate; Tailscale's interface binding normally prevents routing loops.
+This option disables `netns` process-wide, affecting other embedded tsnet
+instances and subsequent starts even after a failed start. It also bypasses
+`netns` SOCKS proxy wrapping configured through `ALL_PROXY`.
 
 ## Fixture limits
 
