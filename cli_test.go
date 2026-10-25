@@ -273,3 +273,16 @@ func TestCustomHeaders(t *testing.T) {
 		})
 	}
 }
+
+func TestDisableNetworkNamespaces(t *testing.T) {
+	for _, enabled := range []bool{false, true} {
+		args := []string{"tsnsrv", "-name", "test"}
+		if enabled {
+			args = append(args, "-disableNetworkNamespaces")
+		}
+		args = append(args, "http://localhost")
+		s, _, err := TailnetSrvFromArgs(args)
+		require.NoError(t, err)
+		assert.Equal(t, enabled, s.DisableNetworkNamespaces)
+	}
+}

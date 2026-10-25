@@ -24,6 +24,7 @@ import (
 	"golang.org/x/oauth2/clientcredentials"
 	"tailscale.com/client/local"
 	"tailscale.com/client/tailscale/v2"
+	"tailscale.com/net/netns"
 	"tailscale.com/tsnet"
 	"tailscale.com/types/logger"
 )
@@ -165,6 +166,7 @@ type TailnetSrv struct {
 	EnableBugReports                  bool
 	UpstreamHeaders                   headers
 	SuppressTailnetDialer             bool
+	DisableNetworkNamespaces          bool
 	ReadHeaderTimeout                 time.Duration
 	TsnetVerbose                      bool
 	UpstreamAllowInsecureCiphers      bool
@@ -206,6 +208,7 @@ func TailnetSrvFromArgs(args []string) (*ValidTailnetSrv, *ffcli.Command, error)
 	fs.StringVar(&s.PrometheusAddr, "prometheusAddr", ":9099", "Serve prometheus metrics from this address. Empty string to disable.")
 	fs.BoolVar(&s.EnableBugReports, "enableBugReports", false, "Allow POST /bugreport on the prometheus address to submit debug logs to the Tailscale API")
 	fs.Var(&s.UpstreamHeaders, "upstreamHeader", "Additional headers (separated by ': ') on requests to upstream.")
+	fs.BoolVar(&s.DisableNetworkNamespaces, "disableNetworkNamespaces", false, "Disable Tailscale socket interface binding on unprivileged multi-interface hosts")
 	fs.BoolVar(&s.SuppressTailnetDialer, "suppressTailnetDialer", false, "Whether to use the stdlib net.Dialer instead of a tailnet-enabled one")
 	fs.DurationVar(&s.ReadHeaderTimeout, "readHeaderTimeout", 0, "Amount of time to allow for reading HTTP request headers. 0 will disable the timeout but expose the service to the slowloris attack.")
 	fs.BoolVar(&s.TsnetVerbose, "tsnetVerbose", false, "Whether to output tsnet logs.")
@@ -318,6 +321,10 @@ func (s *ValidTailnetSrv) mintAuthKey(ctx context.Context, authkey string) (stri
 }
 
 func (s *ValidTailnetSrv) Run(ctx context.Context) error {
+	if s.DisableNetworkNamespaces {
+		// Unprivileged sockets otherwise bind to the default interface, ignoring routes.
+		netns.SetEnabled(false)
+	}
 	srv := &tsnet.Server{
 		Hostname:   s.Name,
 		Dir:        s.StateDir,
