@@ -95,6 +95,7 @@
     };
 
   inputs = {
+    headscale.url = "github:juanfont/headscale/30ff8df93c4fbd734a2b8ace4cb9841da78177d6";
     flake-parts.url = "github:hercules-ci/flake-parts";
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   };
