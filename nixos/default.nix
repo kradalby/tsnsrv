@@ -258,6 +258,7 @@
       "-listenAddr=${service.listenAddr}"
       "-stripPrefix=${lib.boolToString service.stripPrefix}"
       "-insecureHTTPS=${lib.boolToString service.insecureHTTPS}"
+      "-suppressWhois=${lib.boolToString service.suppressWhois}"
       "-suppressTailnetDialer=${lib.boolToString service.suppressTailnetDialer}"
       "-readHeaderTimeout=${readHeaderTimeout}"
       "-tsnetVerbose=${lib.boolToString service.tsnetVerbose}"
