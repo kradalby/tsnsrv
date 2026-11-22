@@ -129,3 +129,9 @@ can be done with the following steps:
 3. `curl` will return a bug report ID and tsnsrv will log the report ID at INFO level.
    When you file a tailscale bug, include any relevant report IDs you generated so they
    can check your debug logs.
+
+### Integration tests
+
+Run `nix build '.#checks.x86_64-linux."e2e/systemd"' '.#checks.x86_64-linux."e2e/oci"' -L --no-link`
+to test forwarding, identity, policy and restarts with Headscale's testkit.
+Public ACME issuance and Tailscale Funnel ingress are not covered.

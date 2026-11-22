@@ -25,11 +25,12 @@
           lib.mapAttrs' (name: value: {
             name = "${dir}/${name}";
             inherit value;
-          }) (import ./${dir} {
-            inherit pkgs nixos-lib;
-            nixosModule = self.nixosModules.default;
-            validatorPackage = config.packages.tsnsrvCmdLineValidator;
-          });
+          }) (import ./${dir} ({
+              inherit pkgs nixos-lib;
+              nixosModule = self.nixosModules.default;
+              validatorPackage = config.packages.tsnsrvCmdLineValidator;
+            }
+            // lib.optionalAttrs (dir == "e2e") {headscale = inputs.headscale;}));
       in
         lib.mkMerge [
           (importTests "cmdline")
